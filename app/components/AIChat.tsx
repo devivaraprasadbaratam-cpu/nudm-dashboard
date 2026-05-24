@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+import {
+  GoogleGenerativeAI,
+} from "@google/generative-ai";
+
 import properties
   from "../data/properties.json";
 
@@ -22,86 +26,62 @@ export default function AIChat() {
 
     setLoading(true);
 
-    setTimeout(() => {
+    try {
 
-      const totalProperties =
-        properties.length;
-
-      const approved =
-        properties.filter(
-          (property) =>
-            property.status ===
-            "Approved"
-        ).length;
-
-      const rejected =
-        properties.filter(
-          (property) =>
-            property.status ===
-            "Rejected"
-        ).length;
-
-      const highestCity =
-        "Mumbai";
-
-      if (
-        question
-          .toLowerCase()
-          .includes("highest")
-      ) {
-
-        setAnswer(
-          `The city with highest collection is ${highestCity}.`
+      const genAI =
+        new GoogleGenerativeAI(
+          process.env
+            .NEXT_PUBLIC_GEMINI_API_KEY!
         );
 
-      } else if (
-        question
-          .toLowerCase()
-          .includes("summary")
-      ) {
+      const model =
+        genAI.getGenerativeModel({
+          model: "gemini-2.0-flash",
+        });
 
-        setAnswer(
-          `There are ${totalProperties} total properties. ${approved} are approved and ${rejected} are rejected.`
+      const prompt = `
+You are a property tax analyst.
+
+Dataset:
+${JSON.stringify(properties.slice(0, 50))}
+
+Question:
+${question}
+`;
+
+      const result =
+        await model.generateContent(
+          prompt
         );
 
-      } else if (
-        question
-          .toLowerCase()
-          .includes("approved")
-      ) {
+      const response =
+        await result.response;
 
-        setAnswer(
-          `There are ${approved} approved properties in the dataset.`
-        );
+      const text =
+        response.text();
 
-      } else if (
-        question
-          .toLowerCase()
-          .includes("rejected")
-      ) {
+      setAnswer(text);
 
-        setAnswer(
-          `There are ${rejected} rejected properties in the dataset.`
-        );
+    } catch (error) {
 
-      } else {
+      console.error(error);
 
-        setAnswer(
-          "Dashboard analytics processed successfully."
-        );
-      }
+      setAnswer(
+        "Something went wrong."
+      );
+    }
 
-      setLoading(false);
-
-    }, 1500);
+    setLoading(false);
   };
 
   return (
 
     <div className="bg-white p-6 rounded-2xl shadow-lg mt-10">
 
-      <h2 className="text-3xl font-bold mb-6">
+      <h2 className="text-3xl font-bold mb-6 text-black">
+
         AI Property Assistant
+
       </h2>
 
       <textarea
@@ -110,7 +90,7 @@ export default function AIChat() {
           setQuestion(e.target.value)
         }
         placeholder="Ask property analytics questions..."
-        className="w-full border border-gray-300 rounded-xl p-4 h-32"
+        className="w-full border border-gray-300 rounded-xl p-4 h-32 text-black"
       />
 
       <button
@@ -126,7 +106,7 @@ export default function AIChat() {
 
       {answer && (
 
-        <div className="mt-6 bg-gray-100 p-4 rounded-xl whitespace-pre-wrap">
+        <div className="mt-6 bg-gray-100 p-4 rounded-xl whitespace-pre-wrap text-black">
 
           {answer}
 

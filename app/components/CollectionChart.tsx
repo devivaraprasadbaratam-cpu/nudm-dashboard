@@ -8,7 +8,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  CartesianGrid,
 
 } from "recharts";
 
@@ -17,61 +16,67 @@ type Property = {
   collection_inr: number;
 };
 
-type Props = {
-  properties: Property[];
-};
-
 export default function CollectionChart({
   properties,
-}: Props) {
+}: {
+  properties: Property[];
+}) {
 
-  const cityMap: Record<
-    string,
-    number
-  > = {};
+  const groupedData =
+    Object.values(
 
-  properties.forEach((property) => {
+      properties.reduce((acc, property) => {
 
-    if (!cityMap[property.tenant]) {
+        if (!acc[property.tenant]) {
 
-      cityMap[property.tenant] = 0;
-    }
+          acc[property.tenant] = {
 
-    cityMap[property.tenant] +=
-      property.collection_inr;
-  });
+            city: property.tenant,
+            total: 0,
 
-  const chartData = Object.entries(
-    cityMap
-  ).map(([city, value]) => ({
-    city,
-    collection: value,
-  }));
+          };
+        }
+
+        acc[property.tenant].total +=
+          property.collection_inr;
+
+        return acc;
+
+      }, {} as any)
+
+    );
 
   return (
 
     <div className="bg-white p-6 rounded-2xl shadow-lg mt-10">
 
-      <h2 className="text-3xl font-bold mb-6">
+      <h2 className="text-3xl font-bold mb-6 text-black">
+
         Collection Per City
+
       </h2>
 
       <div className="w-full h-[400px]">
 
-        <ResponsiveContainer>
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+        >
 
-          <BarChart data={chartData}>
+          <BarChart data={groupedData}>
 
-            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="city"
+              stroke="#000000"
+            />
 
-            <XAxis dataKey="city" />
-
-            <YAxis />
+            <YAxis stroke="#000000" />
 
             <Tooltip />
 
             <Bar
-              dataKey="collection"
+              dataKey="total"
+              fill="#000000"
               radius={[10, 10, 0, 0]}
             />
 

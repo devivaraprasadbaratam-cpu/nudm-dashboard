@@ -1,6 +1,11 @@
 "use client";
+
+import { saveAs } from "file-saver";
+
+import PropertyTable from "./components/PropertyTable";
 import AIChat from "./components/AIChat";
 import CollectionChart from "./components/CollectionChart";
+
 import { useMemo, useState } from "react";
 
 import properties from "./data/properties.json";
@@ -10,24 +15,69 @@ export default function Home() {
   const [selectedCity, setSelectedCity] =
     useState("All Cities");
 
+  const [search, setSearch] =
+    useState("");
+
+  const [darkMode, setDarkMode] =
+    useState(false);
+
   const cities = [
     "All Cities",
+
     ...new Set(
       properties.map(
-        (property) => property.tenant
+        (property) =>
+          property.tenant
       )
     ),
   ];
 
   const filteredProperties =
-    selectedCity === "All Cities"
+    useMemo(() => {
 
-      ? properties
+      return properties.filter(
+        (property) => {
 
-      : properties.filter(
-          (property) =>
-            property.tenant === selectedCity
-        );
+          const matchesCity =
+            selectedCity === "All Cities"
+
+              ? true
+
+              : property.tenant ===
+                selectedCity;
+
+          const matchesSearch =
+
+            property.owner_name
+              .toLowerCase()
+              .includes(
+                search.toLowerCase()
+              )
+
+            ||
+
+            property.property_id
+              .toLowerCase()
+              .includes(
+                search.toLowerCase()
+              )
+
+            ||
+
+            property.tenant
+              .toLowerCase()
+              .includes(
+                search.toLowerCase()
+              );
+
+          return (
+            matchesCity &&
+            matchesSearch
+          );
+        }
+      );
+
+    }, [selectedCity, search]);
 
   const totalProperties =
     filteredProperties.length;
@@ -51,9 +101,64 @@ export default function Home() {
       0
     );
 
+  const exportCSV = () => {
+
+    const headers = [
+
+      "Property ID",
+      "Owner Name",
+      "City",
+      "Status",
+      "Annual Tax",
+
+    ];
+
+    const rows =
+      filteredProperties.map(
+        (property) => [
+
+          property.property_id,
+          property.owner_name,
+          property.tenant,
+          property.status,
+          property.annual_tax_inr,
+
+        ]
+      );
+
+    const csvContent =
+
+      [
+        headers.join(","),
+
+        ...rows.map(
+          (row) => row.join(",")
+        ),
+
+      ].join("\n");
+
+    const blob = new Blob(
+      [csvContent],
+      {
+        type: "text/csv;charset=utf-8;",
+      }
+    );
+
+    saveAs(
+      blob,
+      "property-data.csv"
+    );
+  };
+
   return (
 
-    <main className="min-h-screen bg-gray-100 p-8">
+    <main
+      className={`min-h-screen p-8 transition-all duration-300 ${
+        darkMode
+          ? "bg-black text-white"
+          : "bg-gray-100 text-black"
+      }`}
+    >
 
       <div className="max-w-7xl mx-auto">
 
@@ -61,36 +166,94 @@ export default function Home() {
 
           <div>
 
-            <h1 className="text-5xl font-bold text-gray-900">
+            <h1
+              className={`text-5xl font-bold ${
+                darkMode
+                  ? "text-white"
+                  : "text-gray-900"
+              }`}
+            >
+
               NUDM Property Dashboard
+
             </h1>
 
-            <p className="text-gray-600 mt-2 text-lg">
+            <p
+              className={`mt-2 text-lg ${
+                darkMode
+                  ? "text-gray-300"
+                  : "text-gray-600"
+              }`}
+            >
+
               Property Tax Analytics Platform
+
             </p>
 
           </div>
 
-          <select
-            value={selectedCity}
-            onChange={(e) =>
-              setSelectedCity(e.target.value)
-            }
-            className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-lg shadow-sm"
-          >
+          <div className="flex flex-col gap-4">
 
-            {cities.map((city) => (
+            <button
+              onClick={() =>
+                setDarkMode(!darkMode)
+              }
+              className="bg-black text-white px-6 py-3 rounded-xl"
+            >
 
-              <option
-                key={city}
-                value={city}
-              >
-                {city}
-              </option>
+              {darkMode
+                ? "☀️ Light Mode"
+                : "🌙 Dark Mode"}
 
-            ))}
+            </button>
 
-          </select>
+            <select
+              value={selectedCity}
+              onChange={(e) =>
+                setSelectedCity(
+                  e.target.value
+                )
+              }
+              className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-lg shadow-sm text-black"
+            >
+
+              {cities.map((city) => (
+
+                <option
+                  key={city}
+                  value={city}
+                >
+
+                  {city}
+
+                </option>
+
+              ))}
+
+            </select>
+
+            <input
+              type="text"
+              placeholder="Search property, owner, city..."
+              value={search}
+              onChange={(e) =>
+                setSearch(
+                  e.target.value
+                )
+              }
+              className="bg-white border border-gray-300 rounded-xl px-4 py-3 text-lg shadow-sm md:w-96 text-black"
+            />
+
+            <button
+              onClick={exportCSV}
+              className="bg-black text-white px-6 py-3 rounded-xl hover:opacity-90 transition"
+            >
+
+              Export CSV
+
+            </button>
+
+          </div>
 
         </div>
 
@@ -99,11 +262,15 @@ export default function Home() {
           <div className="bg-white rounded-2xl p-6 shadow-lg">
 
             <p className="text-gray-500 text-lg">
+
               Total Properties
+
             </p>
 
-            <h2 className="text-5xl font-bold mt-4">
+            <h2 className="text-5xl font-bold mt-4 text-black">
+
               {totalProperties}
+
             </h2>
 
           </div>
@@ -111,11 +278,15 @@ export default function Home() {
           <div className="bg-green-500 text-white rounded-2xl p-6 shadow-lg">
 
             <p className="text-lg">
+
               Approved
+
             </p>
 
             <h2 className="text-5xl font-bold mt-4">
+
               {totalApproved}
+
             </h2>
 
           </div>
@@ -123,11 +294,15 @@ export default function Home() {
           <div className="bg-red-500 text-white rounded-2xl p-6 shadow-lg">
 
             <p className="text-lg">
+
               Rejected
+
             </p>
 
             <h2 className="text-5xl font-bold mt-4">
+
               {totalRejected}
+
             </h2>
 
           </div>
@@ -135,12 +310,16 @@ export default function Home() {
           <div className="bg-blue-600 text-white rounded-2xl p-6 shadow-lg">
 
             <p className="text-lg">
+
               Total Collection
+
             </p>
 
             <h2 className="text-4xl font-bold mt-4">
+
               ₹
               {totalCollection.toLocaleString()}
+
             </h2>
 
           </div>
@@ -148,10 +327,17 @@ export default function Home() {
         </div>
 
       </div>
-    <CollectionChart
-  properties={filteredProperties}
-/>
-    <AIChat />
+
+      <CollectionChart
+        properties={filteredProperties}
+      />
+
+      <AIChat />
+
+      <PropertyTable
+        properties={filteredProperties}
+      />
+
     </main>
   );
 }
